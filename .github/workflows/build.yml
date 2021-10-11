@@ -1,0 +1,30 @@
+name: build-artifacts
+on: [push]
+
+jobs:
+  build-ffish-js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: .github/workflows/build-img.sh emcc-ff ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ffish-js
+          path: out/
+          retention-days: 1
+
+  package:
+    needs: build-ffish-js
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: ffish-js
+          path: web-shell/js/
+
+      - uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: web-shell/

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Fairy-Stockfish</title>
+    <link rel="stylesheet" href="index.css">
+    <script type="text/javascript" src="sw.js"></script>
+  </head>
+  <body>
+    <div id="root">
+      <div class="controls">
+        <div>
+          <select id="links">
+            <option value="none" selected>Fairy-Stockfish</option>
+            <option value="https://github.com/ianfab/Fairy-Stockfish">homepage</option>
+            <option value="https://github.com/ianfab/stockfish.wasm">homepage/wasm</option>
+            <option value="./engine-interface.txt">UCI.txt</option>
+          </select>
+        </div>
+        <div>
+          <span>level</span>
+          <select id="level">
+            <option value="20">20</option>
+            <option value="15">15</option>
+            <option value="10">10</option>
+            <option value="5">5</option>
+            <option value="1">1</option>
+          </select>
+        </div>
+      </div>
+
+      <textarea id="output" cols="30" rows="10" placeholder="UCI output" disabled></textarea>
+
+      <div class="controls">
+        <div>
+          <span>position</span>
+          <input type="text" id="position" value="startpos">
+          <button id="positionSet">set</button>
+        </div>
+        <div>
+          <span>go</span>
+          <button id="goDepth10">depth 10</button>
+          <button id="goInfinite">infinite</button>
+          <button id="goStop">stop</button>
+        </div>
+        <div>
+          <span>load position</span>
+          <select id="loadpos">
+            <option value="none">select</option>
+            <option value="19970511-DB-Kasparov">19970511-DB-Kasparov</option>
+          </select>
+        </div>
+      </div>
+
+      <form id="input">
+        <input type="text" id="command" name="command" placeholder="UCI command...">
+      </form>
+    </div>
+
+    <script type="text/javascript" src="js/stockfish.js"></script>
+
+    <script type="text/javascript">
+      let sfInstance;
+
+      Stockfish().then(sf => {
+        sfInstance = sf;
+        sfInstance.addMessageListener(msgStr => writeTextarea(msgStr));
+        sfInstance.postMessage("uci");
+      });
+
+      const gameMoves = {
+        "19970511-DB-Kasparov": "e2e4 c7c6 d2d4 d7d5 b1c3 d5e4 c3e4 b8d7 e4g5 g8f6 f1d3 e7e6 g1f3 h7h6 g5e6 d8e7 e1g1 f7e6 d3g6 e8d8 c1f4 b7b5 a2a4 c8b7 f1e1 f6d5 f4g3 d8c8 a4b5 c6b5 d1d3 b7c6 g6f5 e6f5 e1e7 f8e7"
+      };
+
+      const linksSelect = document.getElementById("links");
+      const levelSelect = document.getElementById("level");
+
+      const outTextarea = document.getElementById("output");
+      const inputForm = document.getElementById("input");
+      const cmdInput = document.getElementById("command");
+
+      const positionInput = document.getElementById("position");
+      const positionSetButton = document.getElementById("positionSet");
+
+      const goDepth10Button = document.getElementById("goDepth10");
+      const goInfiniteButton = document.getElementById("goInfinite");
+      const goStopButton = document.getElementById("goStop");
+
+      const loadposSelect = document.getElementById("loadpos");
+
+      function writeTextarea(outStr) {
+        outTextarea.value += outStr + "\n";
+        outTextarea.scrollTop = outTextarea.scrollHeight;
+      }
+
+      function dispatchMessage(cmdStr) {
+        writeTextarea(cmdStr);
+        sfInstance.postMessage(cmdStr);
+      }
+
+      function dispatchCommand(cmdStr) {
+        const cmdLine = cmdStr + "\n";
+
+        dispatchMessage(cmdLine);
+      }
+
+      function setPosition() {
+        dispatchCommand("position " + positionInput.value);
+        positionInput.value = "";
+      }
+
+      function go(args) {
+        dispatchCommand("go" + " " + args);
+      }
+
+      function loadpos(game) {
+        dispatchCommand("position startpos moves " + gameMoves[game]);
+      }
+
+      linksSelect.onchange = ev => {
+        window.open(linksSelect.value);
+        linksSelect.value = "none";
+      };
+
+      levelSelect.onchange = ev => {
+        dispatchCommand("setoption name Skill Level value " + levelSelect.value);
+      };
+
+      inputForm.onsubmit = ev => {
+        ev.preventDefault();
+        dispatchMessage(cmdInput.value)
+        cmdInput.value = "";
+      };
+
+      positionSetButton.onclick = _ => setPosition();
+      goDepth10Button.onclick = _ => go("depth 10");
+      goInfiniteButton.onclick = _ => go("infinite");
+      goStopButton.onclick = _ => dispatchCommand("stop");
+      loadposSelect.onchange = _ => loadpos(loadposSelect.value);
+    </script>
+  </body>
+</html>
